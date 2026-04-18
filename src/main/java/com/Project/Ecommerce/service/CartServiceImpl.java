@@ -1,0 +1,108 @@
+package com.Project.Ecommerce.service;
+
+import com.Project.Ecommerce.Payload.CartDTO;
+import com.Project.Ecommerce.Payload.ProductDTO;
+import com.Project.Ecommerce.exceptions.ApiException;
+import com.Project.Ecommerce.exceptions.ResourceNotFoundException;
+import com.Project.Ecommerce.model.Cart;
+import com.Project.Ecommerce.model.CartItem;
+import com.Project.Ecommerce.model.Product;
+import com.Project.Ecommerce.repository.CartItemRepository;
+import com.Project.Ecommerce.repository.CartRepository;
+import com.Project.Ecommerce.repository.ProductRepository;
+import com.Project.Ecommerce.util.AuthUtil;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Stream;
+
+@Service
+public class CartServiceImpl implements CartService{
+    @Autowired
+    CartRepository cartRepository;
+    @Autowired
+    ProductRepository productRepository;
+
+    @Autowired
+    CartItemRepository cartItemRepository;
+
+    @Autowired
+    ModelMapper modelMapper;
+
+    @Autowired
+    AuthUtil authUtil;
+
+    //Steps for below
+    //Find Exitsing cart or create one
+    //Retrive Product Details
+    //Perform Validations
+    //Create Cart Item
+    //Save Cart Item
+    //Return updated cart
+
+    @Override
+    public CartDTO addProductToCart(Long productId, Integer quantity) {
+      Cart cart=createCart();
+
+        Product product=productRepository.findById(productId)
+                .orElseThrow(()-> new ResourceNotFoundException("Product","ProductId",productId));
+
+       CartItem cartItem= cartItemRepository.findCartItemByProductIdAndCartId(cart.getCartId(),productId);
+
+        if(cartItem != null){
+            throw new ApiException("Product "+product.getProductName()+"Already exists ");
+        }
+        if(product.getQuantity()==0){
+            throw new ApiException(product.getProductName()+"Is not Available");
+        }
+        if(product.getQuantity()< quantity){
+            throw new ApiException("Please make an order of the "+product.getProductName()+
+                    "less then or equal to the quantity "+ product.getQuantity()+" .");
+        }
+        CartItem newCartItem=new CartItem();
+
+        newCartItem.setProduct(product);
+        newCartItem.setCart(cart);
+        newCartItem.setQuantity(quantity);
+        newCartItem.setDiscount(product.getDiscount());
+        newCartItem.setProductPrice(product.getSpecialPrice());
+
+        cartItemRepository.save(newCartItem);
+        cart.getCartItems().add(newCartItem);
+
+        product.setQuantity(product.getQuantity());
+
+        cart.setTotalPrice(cart.getTotalPrice()+(product
+                .getSpecialPrice()*quantity));
+
+        cartRepository.save(cart);
+        CartDTO cartDTO=modelMapper.map(cart,CartDTO.class);
+
+        List<CartItem> cartItems=cart.getCartItems();
+        Stream<ProductDTO> productStream=cartItems.stream().map(
+                item ->{
+                    ProductDTO map=modelMapper.map(item.getProduct(),ProductDTO.class);
+                    map.setQuantity(item.getQuantity());
+                    return map;
+                });
+        cartDTO.setProducts(productStream.toList());
+        return cartDTO;
+    }
+
+    private Cart createCart(){
+
+        Cart userCart=cartRepository.findCartByEmail(authUtil.loggedInEmail());
+        if(userCart!=null){
+            return  userCart;
+        }
+        Cart cart =new Cart();
+        cart.setTotalPrice(0.0);
+        cart.setUser(authUtil.loggedInUser());
+        Cart newCart=cartRepository.save(cart);
+
+        return newCart;
+    }
+
+}
