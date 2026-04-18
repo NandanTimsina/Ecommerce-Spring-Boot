@@ -73,6 +73,7 @@ public class CartServiceImpl implements CartService{
         cartItemRepository.save(newCartItem);
         cart.getCartItems().add(newCartItem);
 
+
         product.setQuantity(product.getQuantity());
 
         cart.setTotalPrice(cart.getTotalPrice()+(product
@@ -111,6 +112,24 @@ public class CartServiceImpl implements CartService{
                         }).toList();
         return cartDTOS;
     }
+
+    @Override
+    public CartDTO getCart(String emailId, Long cartId) {
+        Cart cart=cartRepository.findCartByEmailAndCartId(emailId,cartId);
+        if(cart==null){
+            throw new ResourceNotFoundException("Cart ","CartId ",cartId);
+        }
+        CartDTO cartDTO=modelMapper.map(cart,CartDTO.class);
+        cart.getCartItems().forEach(c-> c.getProduct().setQuantity(c.getQuantity()));
+
+        List<ProductDTO> products=cart.getCartItems().stream()
+                .map(p-> modelMapper.map(p.getProduct(),ProductDTO.class))
+                .toList();
+        cartDTO.setProducts(products);
+        return cartDTO;
+    }
+
+
 
     private Cart createCart(){
 
