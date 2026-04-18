@@ -1,7 +1,7 @@
-package com.ecommerce.project.controller;
+package com.Project.Ecommerce.controller;
 
-import com.ecommerce.project.payload.CartDTO;
-import com.ecommerce.project.service.CartService;
+import com.Project.Ecommerce.Payload.CartDTO;
+import com.Project.Ecommerce.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
