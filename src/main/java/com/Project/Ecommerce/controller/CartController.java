@@ -2,7 +2,6 @@ package com.Project.Ecommerce.controller;
 
 import com.Project.Ecommerce.Payload.CartDTO;
 import com.Project.Ecommerce.model.Cart;
-import com.Project.Ecommerce.repository.CartItemRepository;
 import com.Project.Ecommerce.repository.CartRepository;
 import com.Project.Ecommerce.service.CartService;
 import com.Project.Ecommerce.util.AuthUtil;
@@ -36,6 +35,8 @@ public class CartController {
         List<CartDTO> cartDTOS=cartService.getAllCarts();
         return new ResponseEntity<List<CartDTO>>(cartDTOS,HttpStatus.FOUND);
     }
+
+
     @GetMapping("/carts/users/cart")
     public ResponseEntity<CartDTO> getCartById(){
 
@@ -44,5 +45,24 @@ public class CartController {
         Long cartId=cart.getCartId();
         CartDTO cartDTO=cartService.getCart(emailId,cartId);
         return new ResponseEntity<CartDTO>(cartDTO,HttpStatus.OK);
+    }
+
+
+    @PutMapping("/cart/products/{productId}/quantity/{operation}")
+    public ResponseEntity<CartDTO> updateCartProduct(@PathVariable Long productId,
+                                                     @PathVariable String operation) {
+
+        CartDTO cartDTO = cartService.updateProductQuantityInCart(productId,
+                operation.equalsIgnoreCase("delete") ? -1 : 1);
+
+        return new ResponseEntity<CartDTO>(cartDTO, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/carts/{cartId}/product/{productId}")
+    public ResponseEntity<String> deleteProductFromCart(@PathVariable Long cartId,
+                                                        @PathVariable Long productId) {
+        String status = cartService.deleteProductFromCart(cartId, productId);
+
+        return new ResponseEntity<String>(status, HttpStatus.OK);
     }
 }
